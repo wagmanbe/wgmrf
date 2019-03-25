@@ -4,17 +4,17 @@
 #####  Imports: S_q, S_tot, S_rad, balance.txt, Q.Rdata. 
 #####           ...without these, it wont run. 
 #####
-#####  FIELDS: 1) PSL,                             
-#####          2) T,                               
-#####          3) U_10, (wind SPEED)               
-#####          4) PRECT                            
+#####  FIELDS: 1) PRECIP RATE                             
+#####          2) SEA LEVEL PRESSURE                               
+#####          3) TREFHT               
+#####          4) WIND SPEED @ 10m                             
 #####          5) SWCF                             
 #####          6) LWCF                             
 #####          7) CALIPSO LOW FRACTION             
 #####          8) CALIPSO MED FRACTION             
 #####          9) CALIPSO HGH FRACTION             
-#####          10) RH300                           
-#####          11) U_300 (zonal)                   
+#####          10) RH @ 300 hPa                           
+#####          11) U  @ 300 hPa                   
 #####          ...and Radiative balance scalar     
 #####                                              
 #####  Calls: process_obs from process_obs.R
@@ -111,28 +111,28 @@ if (!file.exists('processed_obs/AVG.COV.MAT')){
   ## Monthly obs files
   # All time coordinates standardized to match ERA_interim
   # Obs span Dec 2006 through Nov 2014
-  gpcp_prect_obs<-nc_open("obs_monthly/PRECIP_RATE.nc") #
-  era_psl_obs<-nc_open("obs_monthly/MSL_ERA.nc")
-  era_trefht_obs<-nc_open("obs_monthly/T2M_ERA.nc")
-  era_SI10_obs<-nc_open("obs_monthly/SI10_ERA.nc")
-  ceres_swcf_obs<-nc_open("obs_monthly/SWCF.nc")
-  ceres_lwcf_obs<-nc_open("obs_monthly/LWCF.nc")
-  calipso<-nc_open("obs_monthly/calipso.nc")
-  era_rh_obs<-nc_open("obs_monthly/RH_300_ERA.nc")
-  era_u300_obs<-nc_open("obs_monthly/U_300_ERA.nc")
+  gpcp_prect_obs     <-nc_open("obs_monthly/PRECIP_RATE.nc") #
+  era_psl_obs        <-nc_open("obs_monthly/MSL_ERA.nc")
+  era_trefht_obs     <-nc_open("obs_monthly/T2M_ERA.nc")
+  era_SI10_obs       <-nc_open("obs_monthly/SI10_ERA.nc")
+  ceres_swcf_obs     <-nc_open("obs_monthly/SWCF.nc")
+  ceres_lwcf_obs     <-nc_open("obs_monthly/LWCF.nc")
+  calipso            <-nc_open("obs_monthly/calipso.nc")
+  era_rh_obs         <-nc_open("obs_monthly/RH_300_ERA.nc")
+  era_u300_obs       <-nc_open("obs_monthly/U_300_ERA.nc")
   
   # Obs data 
-  precip_obs<-ncvar_get(gpcp_prect_obs,"PRECIP_GPCP")                                            # obs field 1
-  psl_obs<-ncvar_get(era_psl_obs,"MSL_ERA")                                                      # obs field 2
-  trefht_obs<-ncvar_get(era_trefht_obs,"T2M_ERA")                                                # obs field 3
-  speed_obs<-ncvar_get(era_SI10_obs,"SI10_ERA")                                                  # obs field 4
-  swcf_obs<-ncvar_get(ceres_swcf_obs)                                                            # obs field 5  
-  lwcf_obs<-ncvar_get(ceres_lwcf_obs)                                                            # obs field 6 
-  cll_obs<-ncvar_get(calipso,"CLL")                                                              # obs field 7 
-  clm_obs<-ncvar_get(calipso,"CLM")                                                              # obs field 8 
-  clh_obs<-ncvar_get(calipso,"CLH")                                                              # obs field 9 
-  rh300_obs<-ncvar_get(era_rh_obs)                                                               # obs field 10
-  u300_obs<-ncvar_get(era_u300_obs)                                                              # obs field 11 
+  precip_obs         <-ncvar_get(gpcp_prect_obs,"PRECIP_GPCP")      # obs field 1 PRECIP
+  psl_obs            <-ncvar_get(era_psl_obs,"MSL_ERA")             # obs field 2 PSL
+  trefht_obs         <-ncvar_get(era_trefht_obs,"T2M_ERA")          # obs field 3 TREFHT
+  speed_obs          <-ncvar_get(era_SI10_obs,"SI10_ERA")           # obs field 4 10 m wind speed
+  swcf_obs           <-ncvar_get(ceres_swcf_obs)                    # obs field 5 SWCF  
+  lwcf_obs           <-ncvar_get(ceres_lwcf_obs)                    # obs field 6 LWCF
+  cll_obs            <-ncvar_get(calipso,"CLL")                     # obs field 7 CALIPSO LOW CLOUD FRACTION
+  clm_obs            <-ncvar_get(calipso,"CLM")                     # obs field 8 CALIPSO MED CLOUD FRACTION
+  clh_obs            <-ncvar_get(calipso,"CLH")                     # obs field 9 CALIPSO HGH CLOUD FRACTION
+  rh300_obs          <-ncvar_get(era_rh_obs)                        # obs field 10 RH @ 300 hPa
+  u300_obs           <-ncvar_get(era_u300_obs)                      # obs field 11 U  @ 300 hPa 
     
   obs_list = list( precip_obs, psl_obs, trefht_obs, speed_obs, swcf_obs, lwcf_obs, cll_obs, clm_obs, clh_obs, rh300_obs, u300_obs) 
     
@@ -192,8 +192,8 @@ for (r in 1:length(region)){ #loop over regions
     file_p<-files_p[i]
     # Get model climo for region and season
     
-    model_arg<-vector("list", length = length(fieldnames))                     #Unpack model fields from netcdf and into a list. This list is an argument to cost fn.  
-    obs_arg  <-vector("list", length = length(fieldnames))                     #Unpack obs into a list. This list is an argument to cost fn.  
+    model_arg<-vector("list", length = length(fieldnames))                      
+    obs_arg  <-vector("list", length = length(fieldnames))                     
     
     experiment<-nc_open(file)
     precc_exp<-ncvar_get(experiment,"PRECC")[ ,region[[r]]] 
@@ -213,20 +213,11 @@ for (r in 1:length(region)){ #loop over regions
 
     # Get obs climo for region and season. 
     obs_file<-paste(seas[i],"_list", sep="") 
-    obs_list<-get(obs_file)  
-    obs<-obs_list[[r]] 
-    obs_arg[[1]]  <-obs[ , , 1]                                                        # Field 1: PRECIP
-    obs_arg[[2]]  <-obs[ , , 2]                                                        # Field 2: PSL
-    obs_arg[[3]]  <-obs[ , , 3]                                                        # Field 3: TREFHT
-    obs_arg[[4]]  <-obs[ , , 4]                                                        # Field 4: 10 m wind speed
-    obs_arg[[5]]  <-obs[ , , 5]                                                        # Field 5: SWCF 
-    obs_arg[[6]]  <-obs[ , , 6]                                                        # Field 6: LWCF
-    obs_arg[[7]]  <-obs[ , , 7]                                                        # Field 7: CALIPSO LOW CLOUD FRACTION
-    obs_arg[[8]]  <-obs[ , , 8]                                                        # Field 8: CALIPSO MED CLOUD FRACTION
-    obs_arg[[9]]  <-obs[ , , 9]                                                        # Field 9: CALIPSO HIGH CLOUD FRACTION
-    obs_arg[[10]] <-obs[ , , 10]                                                       # Field 10: RH300
-    obs_arg[[11]] <-obs[ , , 11]                                                       # Field 11: U300
-
+    obs_data<-get(obs_file)  
+    obs<-obs_data[[r]] 
+    obs_arg = list(obs[ , , 1], obs[ , , 2], obs[ , , 3], obs[ , , 4], obs[ , , 5] , obs[ , , 6], 
+                   obs[ , , 7], obs[ , , 8], obs[ , , 9], obs[ , , 10],obs[ , , 11]  )
+    
     rm(obs) # will change size so must be removed 
 
     #COMPUTE COST FOR CURRENT SEASON AND REGION
