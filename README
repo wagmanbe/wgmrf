@@ -1,0 +1,51 @@
+#### Benjamin M. Wagman 
+#### 3/22/2019
+
+### Calculate GMRF cost
+
+Instructions: 
+```
+git clone https://bmw939@bitbucket.org/bmw939/gmrf_minimal.git
+cd gmrf_demo
+Rscript gmrf-cost-11f-4s-3r.R
+```
+OR using Rstudio "source" gmrf-cost-11f-4s-3r.R 
+
+Warning. Running this example takes about 30-40 min on my laptop.
+
+After successful completion, a `results` directory should be created, with subdirectories, containing .Rdata and .txt cost results in a variety of forms. 
+
+You might need to install packages for the R libraries. This is easy to do in R.
+
+Here's what's included:
+
+`gmrf-cost-11f-4s-3r.R`
+
+  + main R script for calculating GMRF cost 
+  + named because it operates on 11 fields, 4 seasons, 3 regions
+  + computes traditional, fields, and field-and-space cost
+
+ **Rcode (dir)**
+
+  + `process_obs.R` 
+  + `docosts.R`  
+
+ **external_weights (dir)**
+
+  + `Q.Rdata` GMRF operators. These apply only to this example grid and its regional partitioning. For any other grid or regional partitioning, you need to make your own. See:  
+`Nosedal-Sanchez, A., C. Jackson, and G. Huerta, 2016. A new test statistic for climate models that includes field and spatial dependencies using Gaussian Markov random fields. Geoscientific Model Development, 9(7):2407–2414.`  https://www.geosci-model-dev.net/9/2407/2016/
+  + `S_and_q_coeffs.mat` Region-season-specific scaling factors (S_q) and global scaling factor (S_tot) computed outside of this code using results of perfect model experiments  
+  +`alpha_solutions.Rdata` Optimal values for the GMRF spatial parameter alpha. Grid-dependent. See eqn. 5 in Nosedal Sanchez et al. 2016 referenced above. 
+
+
+ **model_seasonal_climo (dir)**
+
+  + climatologies of model output for DJF, MAM, JJA, SON on lat x lon (192 x 288) 
+  +`balance.txt` Model annual-mean global-mean radiative imbalance at the TOA  
+
+ **obs_monthly (dir)**
+
+  + monthly observations for eight years for the same fields on lat x lon (192 x 288) 
+
+
+
