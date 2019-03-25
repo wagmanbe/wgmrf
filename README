@@ -5,7 +5,7 @@
 
 Instructions: 
 ```
-git clone https://bmw939@bitbucket.org/bmw939/gmrf_minimal.git
+git clone https://bmw939@bitbucket.org/bmw939/gmrf_demo.git
 cd gmrf_demo
 Rscript gmrf-cost-11f-4s-3r.R
 ```
