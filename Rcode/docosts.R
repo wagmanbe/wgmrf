@@ -57,7 +57,6 @@ cost.nfields<-function(obs,mod,Q1,S1,alpha){
       mod_in2[is.na(mod_in2)] <- 0
       
       cost_detail_mat[i,j]<-t(obs_in1-mod_in1)%*%FIELDS.Q%*%(obs_in2-mod_in2) # Cost = V1t * S[1,1]*Q * V2...
-    
     }
   }
   return(cost_detail_mat)

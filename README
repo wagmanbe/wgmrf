@@ -13,7 +13,7 @@ OR using Rstudio "source" gmrf-cost-11f-4s-3r.R
 
 Warning. Running this example takes about 30-40 min on my laptop.
 
-After successful completion, a `results` directory should be created, with subdirectories, containing .Rdata and .txt cost results in a variety of forms. 
+After successful completion, a `results` directory with two subdirectories and cost output with .Rdata, .txt, and .dat suffixes  
 
 You might need to install packages for the R libraries. This is easy to do in R.
 

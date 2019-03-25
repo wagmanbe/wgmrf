@@ -22,16 +22,17 @@
 #####
 #####  Outputs: AVG.COV.MAT aka "Sq" and obs.climate.Rdata (if these files don't already exist)
 #####          results (dir) 
-#####             -unscaled_cost (dir)
 #####             -scaled_cost   (dir)
 #####             -cost_for_MECS (dir)
+#####          output with suffix .sr   = season x region
+#####          output with suffix .srff = season x region x field x field 
 
 #################################################################################
 
 # Summary of script: 
         
-  #   Get processed observational monthly data
-  #     If the obs have not been processed (i.e. obs. climatologies and covariances have not been computed)
+  #   Load processed observational monthly data
+  #     If the obs have not already been processed (i.e. obs. climatologies and covariances have not been computed)
   #       Calculate seasonal obs. climatologies at gridpoints
   #       Calculate S, the spatial mean of the gridpoint variance and covariance, and invert it. (Only needs to be run once)
   #           Remove linear trend at each gridpoint using a linear model
@@ -159,7 +160,7 @@ load('processed_obs/obs.climate.Rdata')
 
 # Load experiments
 model<-("./") #local data
-seas <- list("DJF", "MAM", "JJA", "SON") # Ordering or seasons consistenc with S
+seas <- list("DJF", "MAM", "JJA", "SON") # Ordering or seasons consistent with S
 
 #WITHIN THIS LOOP...
 # SELECT A REGION
@@ -168,13 +169,13 @@ seas <- list("DJF", "MAM", "JJA", "SON") # Ordering or seasons consistenc with S
       # READ CORRESPONDING OBS  
       # COMPUTE EACH TYPE OF COST
 
-trad.cost.vec <- fields.cost.vec  <- fs.cost.vec  <- matrix(0,nrow=length(seas),ncol=3) # a row for each season and a column for each region (sum over fields)
-trad.cost.matrix <- fields.cost.matrix <- fs.cost.matrix <-  array(0,dim=c(4, 3, nfields, nfields))  # "full cost matrix" (no summing over fields)
+trad.cost.sr <- fields.cost.sr  <- fs.cost.sr  <- matrix(0,nrow=length(seas),ncol=3) # a row for each season and a column for each region (sum over fields)
+trad.cost.srff <- fields.cost.srff <- fs.cost.srff <-  array(0,dim=c(4, 3, nfields, nfields))  # "full cost matrix" (no summing over fields)
 
-dimnames(trad.cost.matrix)[[1]] <-dimnames(fields.cost.matrix)[[1]]<- dimnames(fs.cost.matrix)[[1]] <- seasonnames
-dimnames(trad.cost.matrix)[[2]] <- dimnames(fields.cost.matrix)[[2]] <- dimnames(fs.cost.matrix)[[2]] <-  c("TROP", "S", "N")
-dimnames(trad.cost.matrix)[[3]] <- dimnames(fields.cost.matrix)[[3]]<- dimnames(fs.cost.matrix)[[3]]<- fieldnames
-dimnames(trad.cost.matrix)[[4]]<-dimnames(fields.cost.matrix)[[4]]<-dimnames(fs.cost.matrix)[[4]]<-fieldnames
+dimnames(trad.cost.srff)[[1]] <-dimnames(fields.cost.srff)[[1]]<- dimnames(fs.cost.srff)[[1]] <- seasonnames
+dimnames(trad.cost.srff)[[2]] <- dimnames(fields.cost.srff)[[2]] <- dimnames(fs.cost.srff)[[2]] <-  c("TROP", "S", "N")
+dimnames(trad.cost.srff)[[3]] <- dimnames(fields.cost.srff)[[3]]<- dimnames(fs.cost.srff)[[3]]<- fieldnames
+dimnames(trad.cost.srff)[[4]]<-dimnames(fields.cost.srff)[[4]]<-dimnames(fs.cost.srff)[[4]]<-fieldnames
 
 files=0 # path to model file names
 files_p=0
@@ -217,7 +218,7 @@ for (r in 1:length(region)){ #loop over regions
     obs<-obs_data[[r]] 
     obs_arg = list(obs[ , , 1], obs[ , , 2], obs[ , , 3], obs[ , , 4], obs[ , , 5] , obs[ , , 6], 
                    obs[ , , 7], obs[ , , 8], obs[ , , 9], obs[ , , 10],obs[ , , 11]  )
-    
+   
     rm(obs) # will change size so must be removed 
 
     #COMPUTE COST FOR CURRENT SEASON AND REGION
@@ -229,11 +230,11 @@ for (r in 1:length(region)){ #loop over regions
     trad.S[]<-0                                                            #then zero-it out. 
     diag(trad.S)<-diag(S[ , , i,r])                                        #The traditional S only includes variance 
     inv.trad.S<-solve(trad.S)
-    # For each seson and region, cost.matrix is nfields x nfields. 
-    trad.cost.matrix[i,r, , ]<-cost.nfields(obs_arg,model_arg,Q[[r]],inv.trad.S,alpha)
-    trad.cost.vec[i,r]<-sum(trad.cost.matrix[i,r, , ]) # scalar version of cost 
-    print("          Traditional cost = ...", quote=FALSE)
-    print( format(round(trad.cost.matrix[i,r, , ], 2), nsmall = 2), quote=FALSE)
+    # For each seson and region, cost.srff is nfields x nfields. 
+    trad.cost.srff[i,r, , ]<-cost.nfields(obs_arg,model_arg,Q[[r]],inv.trad.S,alpha)
+    trad.cost.sr[i,r]<-sum(trad.cost.srff[i,r, , ]) # scalar version of cost 
+    print("          Traditional cost", quote=FALSE)
+    #print( format(round(trad.cost.srff[i,r, , ], 2), nsmall = 2), quote=FALSE)
     
     
     ## FIELDS COST: S = full(S) and alpha =1.
@@ -241,29 +242,29 @@ for (r in 1:length(region)){ #loop over regions
     alpha<-1
     fields.S<-S[ , ,i,r]
     inv.fields.S<-solve(fields.S)
-    fields.cost.matrix[i,r, , ]<-cost.nfields(obs_arg,model_arg,Q[[r]],inv.fields.S,alpha)
-    fields.cost.vec[i,r]<-sum(fields.cost.matrix[i,r, , ])
-    print("          Fields cost = ...", quote=FALSE)
-    print( format(round(fields.cost.matrix[i,r, , ], 2), nsmall = 2), quote=FALSE)
+    fields.cost.srff[i,r, , ]<-cost.nfields(obs_arg,model_arg,Q[[r]],inv.fields.S,alpha)
+    fields.cost.sr[i,r]<-sum(fields.cost.srff[i,r, , ])
+    print("          Fields cost", quote=FALSE)
+    #print( format(round(fields.cost.srff[i,r, , ], 2), nsmall = 2), quote=FALSE)
     
     ## FIELDS-SPACE COST: S = full(S) and alpha = optimal alpha for regional grid. 
     ## set alpha, and format S.
     alpha <- alpha_optimal[r]
     fs.S<-S[ ,  ,i,r]
     inv.fs.S<-solve(fs.S)
-    fs.cost.matrix[i,r, , ]<-cost.nfields(obs_arg,model_arg,Q[[r]],inv.fs.S,alpha)
-    fs.cost.vec[i,r]<-sum(fs.cost.matrix[i,r, , ])
-    print("          fields and space cost = ...", quote=FALSE)
-    print( format(round(fs.cost.matrix[i,r, , ], 2), nsmall = 2), quote=FALSE)
+    fs.cost.srff[i,r, , ]<-cost.nfields(obs_arg,model_arg,Q[[r]],inv.fs.S,alpha)
+    fs.cost.sr[i,r]<-sum(fs.cost.srff[i,r, , ])
+    print("          fields and space cost", quote=FALSE)
+    #print( format(round(fs.cost.srff[i,r, , ], 2), nsmall = 2), quote=FALSE)
     
   } #close the season loop. 
 
   
 } #close the region loop. 
 
-trad.cost.scalar=sum(trad.cost.vec)
-fields.cost.scalar=sum(fields.cost.vec)
-fs.cost.scalar=sum(fs.cost.vec)
+trad.cost.scalar=sum(trad.cost.sr)
+fields.cost.scalar=sum(fields.cost.sr)
+fs.cost.scalar=sum(fs.cost.sr)
 #################################################################################
 # Compute Radiative balance and begin to write results. 
 #################################################################################
@@ -273,35 +274,13 @@ fs.cost.scalar=sum(fs.cost.vec)
 # Trenberth et al., (2016). Insights into Earth’s energy imbalance from multiple sources
 
 dir.create('results',showWarnings = FALSE) # cost output before multipyling by S_tot and Sq
-
-dir.create('results/unscaled_cost',showWarnings = FALSE) # cost output before multipyling by S_tot and Sq
 dir.create('results/scaled_cost',showWarnings = FALSE)   # cost output after  multipyling by S_tot and Sq
 dir.create('results/cost_for_MECS',showWarnings = FALSE) # cost output after  multipyling by Sq but NOT multiplying by S_tot. 
 
 rad_cost_unsc<- (balance - 0.90)^2/(2 * 0.5^2) # Target = + 0.75 W/m^2. Standard deviation = 1/2 W/m^2, but this is arbitrary and gets renormalized by S_rad.  
-write(rad_cost_unsc,file="results/unscaled_cost/rad_cost.dat_unsc",append = FALSE)
 
-rownames(trad.cost.vec)<-rownames(fields.cost.vec)<-rownames(fs.cost.vec)<-seasonnames
-colnames(trad.cost.vec)<-colnames(fields.cost.vec)<-colnames(fs.cost.vec)<-c("TROP" , "S" , "N" )
-
-#################################################################################
-# Save 'unscaled' costs in all forms, before scaling by Sq and Stot
-#################################################################################
-
-#write scalar cost
-write(trad.cost.scalar,file="results/unscaled_cost/result_trad.dat_unsc")
-write(fields.cost.scalar,file="results/unscaled_cost/result_fields.dat_unsc")
-write(fs.cost.scalar,file="results/unscaled_cost/result_fs_scalar.dat_unsc")
-
-# save season by region costs
-save(trad.cost.vec,fields.cost.vec,fs.cost.vec,file="results/unscaled_cost/cost_vecs_unsc.Rdata")
-
-#Save text versions.  4x3 (DJF,MAM,JJA,SON) x (TROP,S,N)
-write.table(trad.cost.vec, file="results/unscaled_cost/trad.cost.vec_unsc.txt", row.names=FALSE, col.names=FALSE)
-write.table(fields.cost.vec, file="results/unscaled_cost/fields.cost.vec_unsc.txt", row.names=FALSE, col.names=FALSE)
-write.table(fs.cost.vec, file="results/unscaled_cost/fs.cost.vec_unsc.txt", row.names=FALSE, col.names=FALSE)
-
-save(trad.cost.matrix,fields.cost.matrix,fs.cost.matrix,file="results/unscaled_cost/cost_mats_unsc.Rdata")
+rownames(trad.cost.sr)<-rownames(fields.cost.sr)<-rownames(fs.cost.sr)<-seasonnames
+colnames(trad.cost.sr)<-colnames(fields.cost.sr)<-colnames(fs.cost.sr)<-c("TROP" , "S" , "N" )
 
 #################################################################################
 # Scale costs by Sq and Stot and save
@@ -310,7 +289,7 @@ save(trad.cost.matrix,fields.cost.matrix,fs.cost.matrix,file="results/unscaled_c
 S_weights = readMat('external_weights/S_and_q_coeffs.mat')
 
 # S_weights$S_q is 3x3x4 (cost type x region x season)
-# Immediately reshape S_q such that it is season x region to match cost vecs. 
+# Immediately reshape S_q such that it is season x region to match cost 
 S_q_tmp     <- S_weights$S.q[,,] 
 S_q         <-array(0,dim=c(3,4,3))
 S_q[1, , ]  <- t(S_q_tmp[1,,])
@@ -320,42 +299,52 @@ S_q[3, , ]  <- t(S_q_tmp[3,,])
 S_tot <- S_weights$S.tot
 S_rad <- S_weights$S.rad
 
-# Scaled cost vector  = S_tot * Sq(season x region) * cost(season x region) 
-trad.cost.vec.s   = S_tot[1] *  S_q[1,,] * trad.cost.vec 
-fields.cost.vec.s = S_tot[2] *  S_q[2,,] * fields.cost.vec 
-fs.cost.vec.s     = S_tot[3] *  S_q[3,,] * fs.cost.vec 
+# Scaled cost  = S_tot * Sq(season x region) * cost(season x region) 
+trad.cost.sr.s   = S_tot[1] *  S_q[1,,] * trad.cost.sr 
+fields.cost.sr.s = S_tot[2] *  S_q[2,,] * fields.cost.sr 
+fs.cost.sr.s     = S_tot[3] *  S_q[3,,] * fs.cost.sr 
 
 #Save text versions.  4x3 (DJF,MAM,JJA,SON) x (TROP,S,N)
-write.table(trad.cost.vec.s, file="results/scaled_cost/trad.cost.vec.s.txt", row.names=FALSE, col.names=FALSE)
-write.table(fields.cost.vec.s, file="results/scaled_cost/fields.cost.vec.s.txt", row.names=FALSE, col.names=FALSE)
-write.table(fs.cost.vec.s, file="results/scaled_cost/fs.cost.vec.s.txt", row.names=FALSE, col.names=FALSE)
+write.table(trad.cost.sr.s, file="results/scaled_cost/trad.cost.sr.s.txt", row.names=FALSE, col.names=FALSE)
+write.table(fields.cost.sr.s, file="results/scaled_cost/fields.cost.sr.s.txt", row.names=FALSE, col.names=FALSE)
+write.table(fs.cost.sr.s, file="results/scaled_cost/fs.cost.sr.s.txt", row.names=FALSE, col.names=FALSE)
 
-# Scaled cost matrix = S_tot * Sq (season x region) * cost (season x region x field x field)
-trad.cost.matrix.s  <- fields.cost.matrix.s<- fs.cost.matrix.s    <- array(0,dim=c(length(seas),length(region),nfields,nfields))
-dimnames(trad.cost.matrix.s)[[1]] <- dimnames(fields.cost.matrix.s)[[1]] <- dimnames(fs.cost.matrix.s)[[1]] <- seasonnames
-dimnames(trad.cost.matrix.s)[[2]] <- dimnames(fields.cost.matrix.s)[[2]] <- dimnames(fs.cost.matrix.s)[[2]] <- c("TROP", "S", "N")
-dimnames(trad.cost.matrix.s)[[3]] <- dimnames(fields.cost.matrix.s)[[3]] <- dimnames(fs.cost.matrix.s)[[3]] <- fieldnames
-dimnames(trad.cost.matrix.s)[[4]] <- dimnames(fields.cost.matrix.s)[[4]] <- dimnames(fs.cost.matrix.s)[[4]] <- fieldnames
+# Scaled cost srff = S_tot * Sq (season x region x 1 x 1) * cost (season x region x field x field)
+trad.cost.srff.s  <- fields.cost.srff.s<- fs.cost.srff.s    <- array(0,dim=c(length(seas),length(region),nfields,nfields))
+dimnames(trad.cost.srff.s)[[1]] <- dimnames(fields.cost.srff.s)[[1]] <- dimnames(fs.cost.srff.s)[[1]] <- seasonnames
+dimnames(trad.cost.srff.s)[[2]] <- dimnames(fields.cost.srff.s)[[2]] <- dimnames(fs.cost.srff.s)[[2]] <- c("TROP", "S", "N")
+dimnames(trad.cost.srff.s)[[3]] <- dimnames(fields.cost.srff.s)[[3]] <- dimnames(fs.cost.srff.s)[[3]] <- fieldnames
+dimnames(trad.cost.srff.s)[[4]] <- dimnames(fields.cost.srff.s)[[4]] <- dimnames(fs.cost.srff.s)[[4]] <- fieldnames
 
 for (season in 1:4){
   for (region in 1:3){
-    trad.cost.matrix.s[season,region, , ]   = drop(S_q[1,season,region]) * trad.cost.matrix[season, region, , ]
-    fields.cost.matrix.s[season,region, , ] = drop(S_q[2,season,region]) * fields.cost.matrix[season, region, , ]
-    fs.cost.matrix.s[season,region, , ]     = drop(S_q[3,season,region]) * fs.cost.matrix[season, region, , ]    
+    trad.cost.srff.s[season,region, , ]   = drop(S_q[1,season,region]) * trad.cost.srff[season, region, , ]
+    fields.cost.srff.s[season,region, , ] = drop(S_q[2,season,region]) * fields.cost.srff[season, region, , ]
+    fs.cost.srff.s[season,region, , ]     = drop(S_q[3,season,region]) * fs.cost.srff[season, region, , ]    
   }  
 }
-save(trad.cost.matrix.s,fields.cost.matrix.s,fs.cost.matrix.s,file="results/scaled_cost/cost_mats.Rdata")
+save(trad.cost.srff.s,fields.cost.srff.s,fs.cost.srff.s,file="results/scaled_cost/cost_srff.Rdata")
+
+#Save scalar results as .dat
+trad.cost.scalar.s    =  sum( trad.cost.sr.s)     + (rad_cost_unsc * S_rad)
+fields.cost.scalar.s  =  sum( fields.cost.sr.s )  + (rad_cost_unsc * S_rad)
+fs.cost.scalar.s      =  sum( fs.cost.sr.s )      + (rad_cost_unsc * S_rad)
+rad.cost.scalar.s     =  rad_cost_unsc * S_rad
+write(trad.cost.scalar.s,file=  "results/scaled_cost/trad.cost.scalar.s.dat")
+write(fields.cost.scalar.s,file="results/scaled_cost/fields.cost.scalar.s")
+write(fs.cost.scalar.s,file=    "results/scaled_cost/fs.cost.scalar.s.dat")
+write(rad.cost.scalar.s,file=   "results/scaled_cost/rad.cost.scalar.s.dat")
+
 
 # The ensemble control system generates its own S_tot; it does not generate an S_q. 
 # Therefore, for the ensemble control system, write cost scaled by Sq but not S_tot. 
-trad.cost.scalar.s    =  sum( S_q[1,,] * trad.cost.vec )    + (rad_cost_unsc * S_rad)
-fields.cost.scalar.s  =  sum( S_q[2,,] * fields.cost.vec )  + (rad_cost_unsc * S_rad)
-fs.cost.scalar.s      =  sum( S_q[3,,] * fs.cost.vec )      + (rad_cost_unsc * S_rad)
+trad.cost.scalar.s_noStot    =  sum( S_q[1,,] * trad.cost.sr )    + (rad_cost_unsc * S_rad)
+fields.cost.scalar.s_noStot  =  sum( S_q[2,,] * fields.cost.sr )  + (rad_cost_unsc * S_rad)
+fs.cost.scalar.s_noStot      =  sum( S_q[3,,] * fs.cost.sr )      + (rad_cost_unsc * S_rad)
 
-write(trad.cost.scalar.s,file="results/cost_for_MECS/result_trad.dat")
-write(fields.cost.scalar.s,file="results/cost_for_MECS/result_fields.dat")
-write(fs.cost.scalar.s,file="results/cost_for_MECS/result_fs_scalar.dat")
-write(fs.cost.scalar.s,file="results/cost_for_MECS/result.dat")
+write(trad.cost.scalar.s_noStot,file=   "results/cost_for_MECS/result_trad_noStot.dat")
+write(fields.cost.scalar.s_noStot,file= "results/cost_for_MECS/result_fields_noStot.dat")
+write(fs.cost.scalar.s_noStot,file=     "results/cost_for_MECS/result_fs_scalar_noStot.dat")
 #################################################################################
 print("finished. Check results dir", quote=FALSE)
 # End of cost. 
