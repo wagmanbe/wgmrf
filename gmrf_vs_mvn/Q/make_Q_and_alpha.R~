@@ -1,0 +1,41 @@
+#Benjamin Wagman 09/15/2019
+
+# Calculate the optimal alpha for a Q matrix
+
+library('precision')
+library('MASS')
+
+Q<-precision(12,12) # Generate Q. Larger dimension first.
+Q_result<-eigen(Q,only.values=TRUE) 
+Q_eigs<-Q_result$values #Eigenvalues of Q. 
+
+write.matrix(Q,file="Q_12x12.txt")
+
+#Summation function given alpha and eigenvalues. 
+f<-function(alpha, eigs) {
+    value<-vector(,length(eigs))
+    #Loop over the eigenvalues of the Q matrix.
+    for (j in 1:(length(eigs))){
+      value[j]<-1/( (length(eigs)) * (alpha + (1 - alpha) * eigs[j] ) )
+    }  
+    f_of_alpha<-sum(value) - 1 #Subtract 1 to find the root of this function. 
+    
+return(f_of_alpha)
+} 
+
+Q_alpha<-try(uniroot(f, c(0.000001,0.9), Q_eigs))
+print(Q_alpha)
+cat(Q_alpha$root,file="alpha_12x12.txt")
+
+#plot solution vs alpha. 
+pdf("alpha_12x12.pdf") 
+plot_alpha<-seq(from=0,to=1, length.out=1000) 
+solution<-vector(,length(plot_alpha))
+#loop over each alpha value
+ for (i in 1:length(plot_alpha)){
+   solution[i]<-f(plot_alpha[i],Q_eigs)+1   
+ }
+# 
+plot(plot_alpha,solution,ylim=c(0.4,1.2),xlab=expression(alpha),ylab=expression(f(alpha)) )
+dev.off() 
+
